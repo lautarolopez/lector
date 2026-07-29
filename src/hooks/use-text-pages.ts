@@ -5,9 +5,16 @@ type Options = {
   text: string
   containerRef: RefObject<HTMLElement | null>
   measureRef: RefObject<HTMLElement | null>
+  /** Rem font size used for measurement — changing it reflows pages. */
+  fontSizeRem: number
 }
 
-export function useTextPages({ text, containerRef, measureRef }: Options) {
+export function useTextPages({
+  text,
+  containerRef,
+  measureRef,
+  fontSizeRem,
+}: Options) {
   const [pages, setPages] = useState<string[]>([text])
   const [ready, setReady] = useState(false)
 
@@ -16,14 +23,17 @@ export function useTextPages({ text, containerRef, measureRef }: Options) {
     const measure = measureRef.current
     if (!container || !measure) return
 
+    setReady(false)
+
     const compute = () => {
       const width = container.clientWidth
       const height = container.clientHeight
       if (width <= 0 || height <= 0) return
 
       measure.style.width = `${width}px`
-      // Allow the measure node to grow; we compare scrollHeight to page height
       measure.style.height = 'auto'
+      measure.style.fontSize = `${fontSizeRem}rem`
+      measure.style.lineHeight = '1.7'
 
       const fits = (slice: string) => {
         measure.textContent = slice
@@ -42,7 +52,7 @@ export function useTextPages({ text, containerRef, measureRef }: Options) {
     observer.observe(container)
 
     return () => observer.disconnect()
-  }, [text, containerRef, measureRef])
+  }, [text, containerRef, measureRef, fontSizeRem])
 
   return { pages, ready }
 }

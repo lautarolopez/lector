@@ -3,39 +3,47 @@ import {
   ChevronRightIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
-} from "@heroicons/react/24/outline";
+} from '@heroicons/react/24/outline'
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
   type ReactNode,
-} from "react";
-import { useTextPages } from "#/hooks/use-text-pages";
-import { loadPage, savePage } from "#/lib/text-store";
+} from 'react'
+import { useTextPages } from '#/hooks/use-text-pages'
+import {
+  DEFAULT_FONT_SIZE_INDEX,
+  FONT_SIZE_STEPS,
+  loadFontSizeIndex,
+  loadPage,
+  saveFontSizeIndex,
+  savePage,
+} from '#/lib/text-store'
 
 const pageTextClassName =
-  "font-reading whitespace-pre-wrap break-words text-xl leading-[1.75] text-ink sm:text-2xl sm:leading-[1.7]";
+  'font-reading whitespace-pre-wrap break-words text-ink'
 
-const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_DEBOUNCE_MS = 300
+const FONT_SIZE_DEBOUNCE_MS = 300
 
 function highlightMatches(text: string, query: string): ReactNode {
-  const needle = query.trim();
-  if (!needle) return text;
+  const needle = query.trim()
+  if (!needle) return text
 
-  const lowerText = text.toLowerCase();
-  const lowerNeedle = needle.toLowerCase();
-  const parts: ReactNode[] = [];
-  let start = 0;
-  let key = 0;
+  const lowerText = text.toLowerCase()
+  const lowerNeedle = needle.toLowerCase()
+  const parts: ReactNode[] = []
+  let start = 0
+  let key = 0
 
   while (start <= text.length) {
-    const matchAt = lowerText.indexOf(lowerNeedle, start);
+    const matchAt = lowerText.indexOf(lowerNeedle, start)
     if (matchAt === -1) {
-      if (start < text.length) parts.push(text.slice(start));
-      break;
+      if (start < text.length) parts.push(text.slice(start))
+      break
     }
-    if (matchAt > start) parts.push(text.slice(start, matchAt));
+    if (matchAt > start) parts.push(text.slice(start, matchAt))
     parts.push(
       <span
         key={key++}
@@ -43,126 +51,149 @@ function highlightMatches(text: string, query: string): ReactNode {
       >
         {text.slice(matchAt, matchAt + needle.length)}
       </span>,
-    );
-    start = matchAt + needle.length;
+    )
+    start = matchAt + needle.length
   }
 
-  return parts.length > 0 ? parts : text;
+  return parts.length > 0 ? parts : text
 }
 
 type ReaderProps = {
-  text: string;
-  onExit: () => void;
-  className?: string;
-};
+  text: string
+  onExit: () => void
+  className?: string
+}
 
-export function Reader({ text, onExit, className = "" }: ReaderProps) {
-  const [pageIndex, setPageIndex] = useState(() => loadPage());
-  const [turnKey, setTurnKey] = useState(0);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+export function Reader({ text, onExit, className = '' }: ReaderProps) {
+  const [pageIndex, setPageIndex] = useState(() => loadPage())
+  const [turnKey, setTurnKey] = useState(0)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [fontSizeIndex, setFontSizeIndex] = useState(() => loadFontSizeIndex())
+  const [appliedFontSizeIndex, setAppliedFontSizeIndex] = useState(
+    () => loadFontSizeIndex(),
+  )
 
-  const pageRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null)
+  const measureRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const fontSizeRem = FONT_SIZE_STEPS[appliedFontSizeIndex] ?? FONT_SIZE_STEPS[DEFAULT_FONT_SIZE_INDEX]
 
   const { pages, ready } = useTextPages({
     text,
     containerRef: pageRef,
     measureRef,
-  });
+    fontSizeRem,
+  })
 
   useEffect(() => {
-    if (!ready) return;
+    if (fontSizeIndex === appliedFontSizeIndex) return
+
+    const timeout = window.setTimeout(() => {
+      setAppliedFontSizeIndex(fontSizeIndex)
+      saveFontSizeIndex(fontSizeIndex)
+    }, FONT_SIZE_DEBOUNCE_MS)
+
+    return () => window.clearTimeout(timeout)
+  }, [appliedFontSizeIndex, fontSizeIndex])
+
+  useEffect(() => {
+    if (!ready) return
     setPageIndex((i) => {
-      const next = Math.min(i, Math.max(pages.length - 1, 0));
-      if (next !== i) savePage(next);
-      return next;
-    });
-  }, [pages.length, ready]);
+      const next = Math.min(i, Math.max(pages.length - 1, 0))
+      if (next !== i) savePage(next)
+      return next
+    })
+  }, [pages.length, ready])
 
   const goTo = useCallback(
     (next: number) => {
       setPageIndex((current) => {
-        const clamped = Math.max(0, Math.min(next, pages.length - 1));
+        const clamped = Math.max(0, Math.min(next, pages.length - 1))
         if (clamped !== current) {
-          savePage(clamped);
-          setTurnKey((k) => k + 1);
+          savePage(clamped)
+          setTurnKey((k) => k + 1)
         }
-        return clamped;
-      });
+        return clamped
+      })
     },
     [pages.length],
-  );
+  )
 
-  const prev = useCallback(() => goTo(pageIndex - 1), [goTo, pageIndex]);
-  const next = useCallback(() => goTo(pageIndex + 1), [goTo, pageIndex]);
+  const prev = useCallback(() => goTo(pageIndex - 1), [goTo, pageIndex])
+  const next = useCallback(() => goTo(pageIndex + 1), [goTo, pageIndex])
 
   const closeSearch = useCallback(() => {
-    setSearchOpen(false);
-    setSearchQuery("");
-  }, []);
+    setSearchOpen(false)
+    setSearchQuery('')
+  }, [])
 
   useEffect(() => {
-    if (!searchOpen) return;
-    searchInputRef.current?.focus();
-  }, [searchOpen]);
+    if (!searchOpen) return
+    searchInputRef.current?.focus()
+  }, [searchOpen])
 
   useEffect(() => {
-    if (!searchOpen || !ready) return;
+    if (!searchOpen || !ready) return
 
-    const query = searchQuery.trim();
-    if (!query) return;
+    const query = searchQuery.trim()
+    if (!query) return
 
     const timeout = window.setTimeout(() => {
-      const needle = query.toLowerCase();
+      const needle = query.toLowerCase()
       const matchIndex = pages.findIndex((page) =>
         page.toLowerCase().includes(needle),
-      );
-      if (matchIndex >= 0) goTo(matchIndex);
-    }, SEARCH_DEBOUNCE_MS);
+      )
+      if (matchIndex >= 0) goTo(matchIndex)
+    }, SEARCH_DEBOUNCE_MS)
 
-    return () => window.clearTimeout(timeout);
-  }, [goTo, pages, ready, searchOpen, searchQuery]);
+    return () => window.clearTimeout(timeout)
+  }, [goTo, pages, ready, searchOpen, searchQuery])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      const target = e.target;
-      const typingInSearch =
+      const target = e.target
+      const inChrome =
         target instanceof HTMLElement &&
-        target.closest("[data-reader-search]") != null;
+        (target.closest('[data-reader-search]') != null ||
+          target.closest('[data-reader-font]') != null)
 
-      if (typingInSearch) {
-        if (e.key === "Escape") {
-          e.preventDefault();
-          closeSearch();
+      if (inChrome) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          if (searchOpen) closeSearch()
         }
-        return;
+        return
       }
 
-      if (e.key === "ArrowLeft" || e.key === "PageUp") {
-        e.preventDefault();
-        prev();
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault()
+        prev()
       } else if (
-        e.key === "ArrowRight" ||
-        e.key === "PageDown" ||
-        e.key === " "
+        e.key === 'ArrowRight' ||
+        e.key === 'PageDown' ||
+        e.key === ' '
       ) {
-        e.preventDefault();
-        next();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        onExit();
+        e.preventDefault()
+        next()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        onExit()
       }
     }
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [closeSearch, next, onExit, prev]);
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [closeSearch, next, onExit, prev, searchOpen])
 
-  const page = pages[pageIndex] ?? "";
-  const canPrev = pageIndex > 0;
-  const canNext = pageIndex < pages.length - 1;
+  const page = pages[pageIndex] ?? ''
+  const canPrev = pageIndex > 0
+  const canNext = pageIndex < pages.length - 1
+  const pageStyle = {
+    fontSize: `${fontSizeRem}rem`,
+    lineHeight: 1.7,
+  } as const
 
   return (
     <div
@@ -199,6 +230,7 @@ export function Reader({ text, onExit, className = "" }: ReaderProps) {
               <div
                 key={turnKey}
                 className={`animate-page-in h-full ${pageTextClassName}`}
+                style={pageStyle}
               >
                 {searchOpen && searchQuery.trim()
                   ? highlightMatches(page, searchQuery)
@@ -208,8 +240,35 @@ export function Reader({ text, onExit, className = "" }: ReaderProps) {
           </div>
 
           <div className="relative mt-4 flex min-h-9 shrink-0 items-center justify-center">
+            <div
+              data-reader-font
+              className="absolute top-1/2 left-0 flex -translate-y-1/2 items-center gap-2"
+            >
+              <span
+                aria-hidden
+                className="font-display text-ink-muted block text-sm leading-none font-semibold tracking-tight"
+              >
+                Aa
+              </span>
+              <label className="sr-only" htmlFor="font-size">
+                Tamaño de fuente
+              </label>
+              <input
+                id="font-size"
+                type="range"
+                min={0}
+                max={FONT_SIZE_STEPS.length - 1}
+                step={1}
+                value={fontSizeIndex}
+                onChange={(e) =>
+                  setFontSizeIndex(Number.parseInt(e.target.value, 10))
+                }
+                className="accent-foxglove h-1.5 w-24 cursor-pointer sm:w-28"
+              />
+            </div>
+
             <p className="font-display text-ink-muted text-sm tracking-wide">
-              {ready ? `${pageIndex + 1} / ${pages.length}` : "…"}
+              {ready ? `${pageIndex + 1} / ${pages.length}` : '…'}
             </p>
 
             <div
@@ -255,8 +314,9 @@ export function Reader({ text, onExit, className = "" }: ReaderProps) {
           ref={measureRef}
           aria-hidden
           className={`pointer-events-none invisible absolute top-0 left-0 ${pageTextClassName}`}
+          style={pageStyle}
         />
       </div>
     </div>
-  );
+  )
 }
