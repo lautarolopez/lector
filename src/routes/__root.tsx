@@ -11,6 +11,7 @@ export const Route = createRootRoute({
       { title: 'Lector' },
     ],
     links: [
+      { rel: 'icon', href: '/favicon.ico' },
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       {
         rel: 'preconnect',
