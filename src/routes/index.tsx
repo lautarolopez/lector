@@ -43,7 +43,7 @@ function Home() {
   return (
     <main className="bg-surface text-ink relative min-h-dvh overflow-hidden">
       {!showReader ? (
-        <div className="absolute top-3 right-3 z-30 sm:top-4 sm:right-4">
+        <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-[max(0.75rem,env(safe-area-inset-right))] z-30">
           <ThemeToggle />
         </div>
       ) : null}
@@ -58,18 +58,18 @@ function Home() {
             if (phase === 'leaving') setPhase('reading')
           }}
         >
-          <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-16 sm:px-8">
+          <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-12 sm:px-8 sm:py-16">
             <h1 className="animate-fade-rise font-display text-3xl leading-none font-semibold tracking-tight sm:text-4xl md:text-5xl">
               Arrancá a leer
             </h1>
-            <p className="animate-fade-rise-delay font-reading text-ink-muted mt-5 max-w-md text-lg">
+            <p className="animate-fade-rise-delay font-reading text-ink-muted mt-4 max-w-md text-base sm:mt-5 sm:text-lg">
               Pegá cualquier texto y convertilo en una lectura paginada — sin
               scroll infinito.
             </p>
 
             <form
               onSubmit={handleGo}
-              className="animate-fade-rise-delay-2 mt-10 flex flex-col gap-4"
+              className="animate-fade-rise-delay-2 mt-8 flex flex-col gap-4 sm:mt-10"
             >
               <label htmlFor="paste" className="sr-only">
                 Tu texto
@@ -81,13 +81,13 @@ function Home() {
                 placeholder="Pegá el texto acá"
                 spellCheck={false}
                 disabled={phase !== 'landing'}
-                className="border-border bg-panel text-ink placeholder:text-ink-muted/70 font-reading focus:border-foxglove/60 focus:ring-foxglove/40 min-h-56 w-full resize-y rounded-sm border px-4 py-3 text-base leading-relaxed outline-none transition focus:ring-1 disabled:opacity-100"
+                className="border-border bg-panel text-ink placeholder:text-ink-muted/70 font-reading focus:border-foxglove/60 focus:ring-foxglove/40 min-h-48 w-full resize-y rounded-sm border px-3 py-3 text-base leading-relaxed outline-none transition focus:ring-1 disabled:opacity-100 sm:min-h-56 sm:px-4"
               />
               <div className="flex items-center justify-end gap-4">
                 <button
                   type="submit"
                   disabled={!canGo || phase !== 'landing'}
-                  className="font-display bg-cta text-cta-fg hover:bg-foxglove disabled:bg-cta-disabled disabled:text-cta-disabled-fg rounded-sm px-6 py-2.5 text-base font-semibold tracking-wide transition enabled:cursor-pointer disabled:cursor-not-allowed"
+                  className="font-display bg-cta text-cta-fg hover:bg-foxglove disabled:bg-cta-disabled disabled:text-cta-disabled-fg min-h-11 w-full rounded-sm px-6 py-2.5 text-base font-semibold tracking-wide transition enabled:cursor-pointer disabled:cursor-not-allowed sm:w-auto"
                 >
                   Comenzar
                 </button>

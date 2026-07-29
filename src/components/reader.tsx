@@ -1,6 +1,7 @@
 import {
   ArrowsPointingInIcon,
   ArrowsPointingOutIcon,
+  ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   MagnifyingGlassIcon,
@@ -12,8 +13,10 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type TouchEvent,
 } from 'react'
 import { ThemeToggle } from '#/components/theme-toggle'
+import { useIsMobile } from '#/hooks/use-is-mobile'
 import { useTextPages } from '#/hooks/use-text-pages'
 import {
   DEFAULT_FONT_SIZE_INDEX,
@@ -29,10 +32,14 @@ const pageTextClassName =
 
 const SEARCH_DEBOUNCE_MS = 300
 const FONT_SIZE_DEBOUNCE_MS = 300
+const SWIPE_THRESHOLD_PX = 48
 
-function getWindowFrameSize() {
+function getWindowFrameSize(isMobile: boolean) {
   const vw = window.innerWidth
   const vh = window.innerHeight
+  if (isMobile) {
+    return { width: vw, height: vh }
+  }
   return {
     width: Math.min(vw, (vh * 16) / 9),
     height: Math.min(vh, (vw * 9) / 16),
@@ -77,6 +84,7 @@ type ReaderProps = {
 }
 
 export function Reader({ text, onExit, className = '' }: ReaderProps) {
+  const isMobile = useIsMobile()
   const [pageIndex, setPageIndex] = useState(() => loadPage())
   const [turnKey, setTurnKey] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -89,7 +97,7 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
   const [frameSize, setFrameSize] = useState(() =>
     typeof window === 'undefined'
       ? { width: 1280, height: 720 }
-      : getWindowFrameSize(),
+      : getWindowFrameSize(window.matchMedia('(max-width: 767px)').matches),
   )
   const [fullscreenScale, setFullscreenScale] = useState(1)
 
@@ -98,6 +106,7 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
   const measureRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const frameSizeRef = useRef(frameSize)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   frameSizeRef.current = frameSize
 
   const fontSizeRem =
@@ -110,6 +119,12 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
     measureRef,
     fontSizeRem,
   })
+
+  useEffect(() => {
+    if (document.fullscreenElement) return
+    setFrameSize(getWindowFrameSize(isMobile))
+    setFullscreenScale(1)
+  }, [isMobile])
 
   useEffect(() => {
     if (fontSizeIndex === appliedFontSizeIndex) return
@@ -183,7 +198,7 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
       if (active) {
         syncFullscreenScale()
       } else {
-        setFrameSize(getWindowFrameSize())
+        setFrameSize(getWindowFrameSize(isMobile))
         setFullscreenScale(1)
       }
     }
@@ -193,7 +208,7 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
         syncFullscreenScale()
         return
       }
-      setFrameSize(getWindowFrameSize())
+      setFrameSize(getWindowFrameSize(isMobile))
       setFullscreenScale(1)
     }
 
@@ -203,7 +218,7 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
       document.removeEventListener('fullscreenchange', onFullscreenChange)
       window.removeEventListener('resize', onResize)
     }
-  }, [syncFullscreenScale])
+  }, [isMobile, syncFullscreenScale])
 
   useEffect(() => {
     if (!searchOpen) return
@@ -257,13 +272,13 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
         (e.key === 'f' || e.key === 'F') &&
         !e.metaKey &&
         !e.ctrlKey &&
-        !e.altKey
+        !e.altKey &&
+        !isMobile
       ) {
         e.preventDefault()
         void toggleFullscreen()
       } else if (e.key === 'Escape') {
         if (document.fullscreenElement) {
-          // Browser exits fullscreen; stay in the reader
           return
         }
         e.preventDefault()
@@ -273,7 +288,50 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [closeSearch, next, onExit, prev, searchOpen, toggleFullscreen])
+  }, [
+    closeSearch,
+    isMobile,
+    next,
+    onExit,
+    prev,
+    searchOpen,
+    toggleFullscreen,
+  ])
+
+  function onTouchStart(e: TouchEvent) {
+    if (
+      e.target instanceof HTMLElement &&
+      (e.target.closest('[data-reader-search]') ||
+        e.target.closest('[data-reader-font]') ||
+        e.target.closest('button') ||
+        e.target.closest('input'))
+    ) {
+      touchStartRef.current = null
+      return
+    }
+    const touch = e.changedTouches[0]
+    if (!touch) return
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    const start = touchStartRef.current
+    touchStartRef.current = null
+    if (!start) return
+    const touch = e.changedTouches[0]
+    if (!touch) return
+
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    if (
+      Math.abs(dx) < SWIPE_THRESHOLD_PX ||
+      Math.abs(dx) < Math.abs(dy)
+    ) {
+      return
+    }
+    if (dx < 0) next()
+    else prev()
+  }
 
   const page = pages[pageIndex] ?? ''
   const canPrev = pageIndex > 0
@@ -287,6 +345,8 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
     <div
       ref={rootRef}
       className={`bg-surface text-ink flex h-dvh w-dvw items-center justify-center overflow-hidden ${className}`}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
       <div
         className="relative origin-center"
@@ -301,48 +361,61 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
           type="button"
           onClick={prev}
           disabled={!canPrev}
-          className="text-foxglove enabled:hover:bg-foxglove/10 disabled:text-foxglove/25 absolute top-1/2 left-2 z-10 -translate-y-1/2 rounded-sm p-2 transition enabled:cursor-pointer disabled:cursor-default sm:left-3"
-          aria-label="Previous page"
+          className="text-foxglove enabled:hover:bg-foxglove/10 disabled:text-foxglove/25 absolute top-1/2 left-1 z-10 -translate-y-1/2 rounded-sm p-1.5 transition enabled:cursor-pointer disabled:cursor-default sm:left-3 sm:p-2"
+          aria-label="Página anterior"
         >
-          <ChevronLeftIcon className="size-8 sm:size-10" />
+          <ChevronLeftIcon className="size-7 sm:size-10" />
         </button>
 
         <button
           type="button"
           onClick={next}
           disabled={!canNext}
-          className="text-foxglove enabled:hover:bg-foxglove/10 disabled:text-foxglove/25 absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-sm p-2 transition enabled:cursor-pointer disabled:cursor-default sm:right-3"
-          aria-label="Next page"
+          className="text-foxglove enabled:hover:bg-foxglove/10 disabled:text-foxglove/25 absolute top-1/2 right-1 z-10 -translate-y-1/2 rounded-sm p-1.5 transition enabled:cursor-pointer disabled:cursor-default sm:right-3 sm:p-2"
+          aria-label="Página siguiente"
         >
-          <ChevronRightIcon className="size-8 sm:size-10" />
+          <ChevronRightIcon className="size-7 sm:size-10" />
         </button>
 
-        <div className="flex h-full flex-col px-14 pt-10 pb-10 sm:px-20 sm:pt-12 sm:pb-12">
-          <div className="mb-4 flex shrink-0 items-center justify-between gap-4">
-            <p className="font-reading text-ink-muted/70 text-sm tracking-wide">
-              Esc para volver
-            </p>
+        <div className="flex h-full flex-col px-10 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-20 sm:pt-12 sm:pb-12">
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-3 sm:mb-4 sm:gap-4">
+            {isMobile ? (
+              <button
+                type="button"
+                onClick={onExit}
+                className="text-ink-muted hover:text-ink hover:bg-ink/5 font-reading inline-flex items-center gap-1.5 rounded-sm py-1 pr-2 text-sm tracking-wide transition"
+              >
+                <ArrowLeftIcon className="size-4" />
+                Volver
+              </button>
+            ) : (
+              <p className="font-reading text-ink-muted/70 text-sm tracking-wide">
+                Esc para volver
+              </p>
+            )}
             <div className="flex items-center gap-1">
               <ThemeToggle
                 className="text-ink-muted hover:text-ink hover:bg-ink/5 size-8"
                 iconClassName="size-5"
               />
-              <button
-                type="button"
-                onClick={() => void toggleFullscreen()}
-                className="text-ink-muted hover:text-ink hover:bg-ink/5 rounded-sm p-1.5 transition"
-                aria-label={
-                  isFullscreen
-                    ? 'Salir de pantalla completa'
-                    : 'Pantalla completa'
-                }
-              >
-                {isFullscreen ? (
-                  <ArrowsPointingInIcon className="size-5" />
-                ) : (
-                  <ArrowsPointingOutIcon className="size-5" />
-                )}
-              </button>
+              {!isMobile ? (
+                <button
+                  type="button"
+                  onClick={() => void toggleFullscreen()}
+                  className="text-ink-muted hover:text-ink hover:bg-ink/5 rounded-sm p-1.5 transition"
+                  aria-label={
+                    isFullscreen
+                      ? 'Salir de pantalla completa'
+                      : 'Pantalla completa'
+                  }
+                >
+                  {isFullscreen ? (
+                    <ArrowsPointingInIcon className="size-5" />
+                  ) : (
+                    <ArrowsPointingOutIcon className="size-5" />
+                  )}
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -360,10 +433,10 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
             ) : null}
           </div>
 
-          <div className="relative mt-4 flex min-h-9 shrink-0 items-center justify-center">
+          <div className="relative mt-3 flex min-h-9 shrink-0 items-center justify-center sm:mt-4">
             <div
               data-reader-font
-              className="absolute top-1/2 left-0 flex -translate-y-1/2 items-center gap-2"
+              className="absolute top-1/2 left-0 flex max-w-[42%] -translate-y-1/2 items-center gap-1.5 sm:max-w-none sm:gap-2"
             >
               <span
                 aria-hidden
@@ -384,7 +457,7 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
                 onChange={(e) =>
                   setFontSizeIndex(Number.parseInt(e.target.value, 10))
                 }
-                className="accent-foxglove h-1.5 w-24 cursor-pointer sm:w-28"
+                className="accent-foxglove h-1.5 w-16 cursor-pointer touch-manipulation sm:w-28"
               />
             </div>
 
@@ -401,11 +474,13 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
                   <input
                     ref={searchInputRef}
                     type="text"
+                    inputMode="search"
+                    enterKeyHint="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar"
                     spellCheck={false}
-                    className="border-border bg-panel text-ink placeholder:text-ink-muted/70 font-reading focus:border-foxglove/60 focus:ring-foxglove/40 w-40 rounded-sm border py-1.5 pr-8 pl-2.5 text-sm outline-none transition focus:ring-1 sm:w-48"
+                    className="border-border bg-panel text-ink placeholder:text-ink-muted/70 font-reading focus:border-foxglove/60 focus:ring-foxglove/40 w-[min(11rem,42vw)] rounded-sm border py-1.5 pr-8 pl-2.5 text-sm outline-none transition focus:ring-1 sm:w-48"
                     aria-label="Buscar en el texto"
                   />
                   <button
