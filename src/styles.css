@@ -1,0 +1,196 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap");
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-night-sky: #2a2a35;
+  --color-foxglove: #b98391;
+  --color-lily-white: #e2e2da;
+
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-letterbox: var(--letterbox);
+  --color-frame: var(--frame);
+  --color-frame-ink: var(--frame-ink);
+  --color-dot: var(--dot);
+  --color-glow: var(--glow);
+  --color-cta: var(--cta);
+  --color-cta-fg: var(--cta-fg);
+  --color-cta-disabled: var(--cta-disabled);
+  --color-cta-disabled-fg: var(--cta-disabled-fg);
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-reading: "Source Serif 4", ui-serif, Georgia, serif;
+}
+
+/* System fallback before the head script (and when no stored preference). */
+:root {
+  --surface: #e2e2da;
+  --ink: #2a2a35;
+  --ink-muted: color-mix(in oklab, #2a2a35 50%, transparent);
+  --panel: color-mix(in oklab, #2a2a35 4%, #e2e2da);
+  --border: color-mix(in oklab, #2a2a35 16%, transparent);
+  --letterbox: #2a2a35;
+  --frame: #e2e2da;
+  --frame-ink: #2a2a35;
+  --dot: #2a2a35;
+  --glow: color-mix(in oklab, #b98391 55%, transparent);
+  --cta: #b98391;
+  --cta-fg: #2a2a35;
+  --cta-disabled: color-mix(in oklab, #b98391 35%, transparent);
+  --cta-disabled-fg: color-mix(in oklab, #2a2a35 45%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #2a2a35;
+    --ink: #e2e2da;
+    --ink-muted: color-mix(in oklab, #e2e2da 45%, transparent);
+    --panel: color-mix(in oklab, #e2e2da 6%, #2a2a35);
+    --border: color-mix(in oklab, #e2e2da 15%, transparent);
+    --letterbox: #1c1c24;
+    --frame: #2a2a35;
+    --frame-ink: #e2e2da;
+    --dot: #e2e2da;
+    --glow: color-mix(in oklab, #b98391 40%, transparent);
+    --cta: #b98391;
+    --cta-fg: #2a2a35;
+    --cta-disabled: color-mix(in oklab, #b98391 30%, transparent);
+    --cta-disabled-fg: color-mix(in oklab, #2a2a35 50%, transparent);
+  }
+}
+
+.light {
+  --surface: #e2e2da;
+  --ink: #2a2a35;
+  --ink-muted: color-mix(in oklab, #2a2a35 50%, transparent);
+  --panel: color-mix(in oklab, #2a2a35 4%, #e2e2da);
+  --border: color-mix(in oklab, #2a2a35 16%, transparent);
+  --letterbox: #2a2a35;
+  --frame: #e2e2da;
+  --frame-ink: #2a2a35;
+  --dot: #2a2a35;
+  --glow: color-mix(in oklab, #b98391 55%, transparent);
+  --cta: #b98391;
+  --cta-fg: #2a2a35;
+  --cta-disabled: color-mix(in oklab, #b98391 35%, transparent);
+  --cta-disabled-fg: color-mix(in oklab, #2a2a35 45%, transparent);
+}
+
+.dark {
+  --surface: #2a2a35;
+  --ink: #e2e2da;
+  --ink-muted: color-mix(in oklab, #e2e2da 45%, transparent);
+  --panel: color-mix(in oklab, #e2e2da 6%, #2a2a35);
+  --border: color-mix(in oklab, #e2e2da 15%, transparent);
+  --letterbox: #1c1c24;
+  --frame: #2a2a35;
+  --frame-ink: #e2e2da;
+  --dot: #e2e2da;
+  --glow: color-mix(in oklab, #b98391 40%, transparent);
+  --cta: #b98391;
+  --cta-fg: #2a2a35;
+  --cta-disabled: color-mix(in oklab, #b98391 30%, transparent);
+  --cta-disabled-fg: color-mix(in oklab, #2a2a35 50%, transparent);
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--color-foxglove);
+  color: var(--color-night-sky);
+}
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateX(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scene-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+@keyframes scene-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-rise {
+  animation: fade-rise 0.7s ease-out both;
+}
+
+.animate-fade-rise-delay {
+  animation: fade-rise 0.75s ease-out 0.12s both;
+}
+
+.animate-fade-rise-delay-2 {
+  animation: fade-rise 0.8s ease-out 0.24s both;
+}
+
+.animate-soft-breathe {
+  animation: soft-breathe 10s ease-in-out infinite;
+}
+
+.animate-page-in {
+  animation: page-in 0.28s ease-out both;
+}
+
+.animate-scene-out {
+  animation: scene-out 0.4s ease-in both;
+}
+
+.animate-scene-in {
+  animation: scene-in 0.55s ease-out both;
+}
