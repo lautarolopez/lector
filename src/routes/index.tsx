@@ -42,9 +42,11 @@ function Home() {
 
   return (
     <main className="bg-surface text-ink relative min-h-dvh overflow-hidden">
-      <div className="absolute top-3 right-3 z-30 sm:top-4 sm:right-4">
-        <ThemeToggle />
-      </div>
+      {!showReader ? (
+        <div className="absolute top-3 right-3 z-30 sm:top-4 sm:right-4">
+          <ThemeToggle />
+        </div>
+      ) : null}
 
       {showLanding ? (
         <div

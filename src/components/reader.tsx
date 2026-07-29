@@ -1,4 +1,6 @@
 import {
+  ArrowsPointingInIcon,
+  ArrowsPointingOutIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   MagnifyingGlassIcon,
@@ -11,6 +13,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { ThemeToggle } from '#/components/theme-toggle'
 import { useTextPages } from '#/hooks/use-text-pages'
 import {
   DEFAULT_FONT_SIZE_INDEX,
@@ -73,7 +76,9 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
   const [appliedFontSizeIndex, setAppliedFontSizeIndex] = useState(
     () => loadFontSizeIndex(),
   )
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
+  const rootRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
   const measureRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -127,6 +132,31 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
   const closeSearch = useCallback(() => {
     setSearchOpen(false)
     setSearchQuery('')
+  }, [])
+
+  const toggleFullscreen = useCallback(async () => {
+    const node = rootRef.current
+    if (!node) return
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen()
+      } else {
+        await node.requestFullscreen()
+      }
+    } catch {
+      // Fullscreen may be blocked by the browser
+    }
+  }, [])
+
+  useEffect(() => {
+    function onFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement === rootRef.current)
+    }
+
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () =>
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
   }, [])
 
   useEffect(() => {
@@ -197,6 +227,7 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
 
   return (
     <div
+      ref={rootRef}
       className={`bg-surface text-ink flex h-dvh w-dvw items-center justify-center overflow-hidden ${className}`}
     >
       <div className="relative aspect-video h-[min(100dvh,calc(100dvw*9/16))] w-[min(100dvw,calc(100dvh*16/9))]">
@@ -221,9 +252,33 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
         </button>
 
         <div className="flex h-full flex-col px-14 pt-10 pb-10 sm:px-20 sm:pt-12 sm:pb-12">
-          <p className="font-reading text-ink-muted/70 mb-4 shrink-0 text-left text-sm tracking-wide">
-            Esc para volver
-          </p>
+          <div className="mb-4 flex shrink-0 items-center justify-between gap-4">
+            <p className="font-reading text-ink-muted/70 text-sm tracking-wide">
+              Esc para volver
+            </p>
+            <div className="flex items-center gap-1">
+              <ThemeToggle
+                className="text-ink-muted hover:text-ink hover:bg-ink/5 size-8"
+                iconClassName="size-5"
+              />
+              <button
+                type="button"
+                onClick={() => void toggleFullscreen()}
+                className="text-ink-muted hover:text-ink hover:bg-ink/5 rounded-sm p-1.5 transition"
+                aria-label={
+                  isFullscreen
+                    ? 'Salir de pantalla completa'
+                    : 'Pantalla completa'
+                }
+              >
+                {isFullscreen ? (
+                  <ArrowsPointingInIcon className="size-5" />
+                ) : (
+                  <ArrowsPointingOutIcon className="size-5" />
+                )}
+              </button>
+            </div>
+          </div>
 
           <div ref={pageRef} className="min-h-0 flex-1 overflow-hidden">
             {ready ? (
