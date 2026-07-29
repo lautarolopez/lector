@@ -30,6 +30,15 @@ const pageTextClassName =
 const SEARCH_DEBOUNCE_MS = 300
 const FONT_SIZE_DEBOUNCE_MS = 300
 
+function getWindowFrameSize() {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  return {
+    width: Math.min(vw, (vh * 16) / 9),
+    height: Math.min(vh, (vw * 9) / 16),
+  }
+}
+
 function highlightMatches(text: string, query: string): ReactNode {
   const needle = query.trim()
   if (!needle) return text
@@ -77,13 +86,23 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
     () => loadFontSizeIndex(),
   )
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [frameSize, setFrameSize] = useState(() =>
+    typeof window === 'undefined'
+      ? { width: 1280, height: 720 }
+      : getWindowFrameSize(),
+  )
+  const [fullscreenScale, setFullscreenScale] = useState(1)
 
   const rootRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
   const measureRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const frameSizeRef = useRef(frameSize)
+  frameSizeRef.current = frameSize
 
-  const fontSizeRem = FONT_SIZE_STEPS[appliedFontSizeIndex] ?? FONT_SIZE_STEPS[DEFAULT_FONT_SIZE_INDEX]
+  const fontSizeRem =
+    FONT_SIZE_STEPS[appliedFontSizeIndex] ??
+    FONT_SIZE_STEPS[DEFAULT_FONT_SIZE_INDEX]
 
   const { pages, ready } = useTextPages({
     text,
@@ -134,6 +153,14 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
     setSearchQuery('')
   }, [])
 
+  const syncFullscreenScale = useCallback(() => {
+    const { width, height } = frameSizeRef.current
+    if (width <= 0 || height <= 0) return
+    setFullscreenScale(
+      Math.min(window.innerWidth / width, window.innerHeight / height),
+    )
+  }, [])
+
   const toggleFullscreen = useCallback(async () => {
     const node = rootRef.current
     if (!node) return
@@ -151,13 +178,32 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
 
   useEffect(() => {
     function onFullscreenChange() {
-      setIsFullscreen(document.fullscreenElement === rootRef.current)
+      const active = document.fullscreenElement === rootRef.current
+      setIsFullscreen(active)
+      if (active) {
+        syncFullscreenScale()
+      } else {
+        setFrameSize(getWindowFrameSize())
+        setFullscreenScale(1)
+      }
+    }
+
+    function onResize() {
+      if (document.fullscreenElement) {
+        syncFullscreenScale()
+        return
+      }
+      setFrameSize(getWindowFrameSize())
+      setFullscreenScale(1)
     }
 
     document.addEventListener('fullscreenchange', onFullscreenChange)
-    return () =>
+    window.addEventListener('resize', onResize)
+    return () => {
       document.removeEventListener('fullscreenchange', onFullscreenChange)
-  }, [])
+      window.removeEventListener('resize', onResize)
+    }
+  }, [syncFullscreenScale])
 
   useEffect(() => {
     if (!searchOpen) return
@@ -207,7 +253,19 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
       ) {
         e.preventDefault()
         next()
+      } else if (
+        (e.key === 'f' || e.key === 'F') &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey
+      ) {
+        e.preventDefault()
+        void toggleFullscreen()
       } else if (e.key === 'Escape') {
+        if (document.fullscreenElement) {
+          // Browser exits fullscreen; stay in the reader
+          return
+        }
         e.preventDefault()
         onExit()
       }
@@ -215,7 +273,7 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [closeSearch, next, onExit, prev, searchOpen])
+  }, [closeSearch, next, onExit, prev, searchOpen, toggleFullscreen])
 
   const page = pages[pageIndex] ?? ''
   const canPrev = pageIndex > 0
@@ -230,7 +288,15 @@ export function Reader({ text, onExit, className = '' }: ReaderProps) {
       ref={rootRef}
       className={`bg-surface text-ink flex h-dvh w-dvw items-center justify-center overflow-hidden ${className}`}
     >
-      <div className="relative aspect-video h-[min(100dvh,calc(100dvw*9/16))] w-[min(100dvw,calc(100dvh*16/9))]">
+      <div
+        className="relative origin-center"
+        style={{
+          width: frameSize.width,
+          height: frameSize.height,
+          transform:
+            fullscreenScale === 1 ? undefined : `scale(${fullscreenScale})`,
+        }}
+      >
         <button
           type="button"
           onClick={prev}
