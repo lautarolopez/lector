@@ -8,7 +8,7 @@
   "trailingSlash": false,
   "redirects": [
     {
-      "source": "/((?!assets/|favicon\\.ico).+)",
+      "source": "/((?!assets/|favicon\\.ico$|lector$|editor$).+)",
       "destination": "/",
       "permanent": false
     }

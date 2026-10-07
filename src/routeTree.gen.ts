@@ -11,7 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
-import { Route as ReadRouteImport } from './routes/read'
+import { Route as EditorRouteImport } from './routes/editor'
+import { Route as LectorRouteImport } from './routes/lector'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +24,49 @@ const SplatRoute = SplatRouteImport.update({
   path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReadRoute = ReadRouteImport.update({
-  id: '/read',
-  path: '/read',
+const EditorRoute = EditorRouteImport.update({
+  id: '/editor',
+  path: '/editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LectorRoute = LectorRouteImport.update({
+  id: '/lector',
+  path: '/lector',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
-  '/read': typeof ReadRoute
+  '/editor': typeof EditorRoute
+  '/lector': typeof LectorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
-  '/read': typeof ReadRoute
+  '/editor': typeof EditorRoute
+  '/lector': typeof LectorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
-  '/read': typeof ReadRoute
+  '/editor': typeof EditorRoute
+  '/lector': typeof LectorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/read'
+  fullPaths: '/' | '/$' | '/editor' | '/lector'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/read'
-  id: '__root__' | '/' | '/$' | '/read'
+  to: '/' | '/$' | '/editor' | '/lector'
+  id: '__root__' | '/' | '/$' | '/editor' | '/lector'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
-  ReadRoute: typeof ReadRoute
+  EditorRoute: typeof EditorRoute
+  LectorRoute: typeof LectorRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,11 +85,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/read': {
-      id: '/read'
-      path: '/read'
-      fullPath: '/read'
-      preLoaderRoute: typeof ReadRouteImport
+    '/editor': {
+      id: '/editor'
+      path: '/editor'
+      fullPath: '/editor'
+      preLoaderRoute: typeof EditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lector': {
+      id: '/lector'
+      path: '/lector'
+      fullPath: '/lector'
+      preLoaderRoute: typeof LectorRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,7 +105,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
-  ReadRoute: ReadRoute,
+  EditorRoute: EditorRoute,
+  LectorRoute: LectorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

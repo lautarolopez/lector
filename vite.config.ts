@@ -11,6 +11,7 @@ export default defineConfig({
       prerender: {
         enabled: true,
         crawlLinks: true,
+        autoSubfolderIndex: false,
       },
     }),
     viteReact(),

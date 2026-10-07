@@ -1,6 +1,7 @@
 const TEXT_KEY = 'lector:text'
 const PAGE_KEY = 'lector:page'
 const FONT_SIZE_KEY = 'lector:font-size'
+const EDITOR_KEY = 'lector:editor'
 
 /** Slider steps — index 1 matches the previous default (text-xl). */
 export const FONT_SIZE_STEPS = [1.125, 1.25, 1.5, 1.75, 2.125] as const
@@ -60,6 +61,22 @@ export function loadFontSizeIndex(): number {
     return n
   } catch {
     return DEFAULT_FONT_SIZE_INDEX
+  }
+}
+
+export function saveEditorHtml(html: string) {
+  try {
+    localStorage.setItem(EDITOR_KEY, html)
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+export function loadEditorHtml(): string | null {
+  try {
+    return localStorage.getItem(EDITOR_KEY)
+  } catch {
+    return null
   }
 }
 

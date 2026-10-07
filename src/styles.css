@@ -112,6 +112,10 @@ body {
   color: var(--color-night-sky);
 }
 
+::highlight(repeated-word) {
+  background-color: color-mix(in oklab, var(--color-foxglove) 45%, transparent);
+}
+
 @keyframes fade-rise {
   from {
     opacity: 0;
