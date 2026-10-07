@@ -28,6 +28,7 @@ import {
   indexText,
   type RepeatedWord,
 } from '#/lib/repeated-words'
+import { countText, type TextStats } from '#/lib/text-stats'
 import {
   DEFAULT_FONT_SIZE_INDEX,
   FONT_SIZE_STEPS,
@@ -162,6 +163,7 @@ function Editor() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [repeatedWords, setRepeatedWords] = useState<RepeatedWord[]>([])
   const [selectedWord, setSelectedWord] = useState<string | null>(null)
+  const [stats, setStats] = useState<TextStats>({ words: 0, characters: 0 })
   // Read after mount: the page is prerendered, so storage isn't available on first render
   const [fontSizeIndex, setFontSizeIndex] = useState(DEFAULT_FONT_SIZE_INDEX)
 
@@ -201,6 +203,7 @@ function Editor() {
     const indexed = indexText(editor)
     const words = findRepeatedWords(indexed.text)
     setRepeatedWords(words)
+    setStats(countText(indexed.text))
 
     const selected = selectedWordRef.current
     if (selected && !words.some(({ key }) => key === selected)) {
@@ -359,7 +362,10 @@ function Editor() {
   }
 
   return (
-    <main ref={rootRef} className="bg-surface text-ink flex h-dvh flex-col">
+    <main
+      ref={rootRef}
+      className="bg-surface text-ink relative flex h-dvh flex-col"
+    >
       <header className="grid shrink-0 grid-cols-[1fr_auto] items-center gap-y-1 pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-2 pl-[max(0.75rem,env(safe-area-inset-left))] lg:grid-cols-[1fr_auto_1fr]">
         <BackLink className="justify-self-start" />
 
@@ -496,11 +502,20 @@ function Editor() {
             onInput={handleInput}
             onCopy={handleCopy}
             onCut={handleCopy}
-            className="font-reading text-ink caret-foxglove flex-1 py-6 break-words whitespace-pre-wrap outline-none sm:py-10"
+            className="font-reading text-ink caret-foxglove flex-1 pt-6 pb-12 break-words whitespace-pre-wrap outline-none sm:pt-10 sm:pb-14"
             style={{ fontSize: `${fontSizeRem}rem`, lineHeight: 1.7 }}
           />
         </div>
       </div>
+
+      <p
+        className="bg-surface/85 text-ink-muted font-reading pointer-events-none absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-[max(0.75rem,env(safe-area-inset-bottom))] rounded-sm px-2 py-1 text-xs tracking-wide tabular-nums backdrop-blur-sm"
+      >
+        {stats.words.toLocaleString('es')}{' '}
+        {stats.words === 1 ? 'palabra' : 'palabras'} ·{' '}
+        {stats.characters.toLocaleString('es')}{' '}
+        {stats.characters === 1 ? 'carácter' : 'caracteres'}
+      </p>
     </main>
   )
 }
